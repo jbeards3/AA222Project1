@@ -12,7 +12,7 @@
 =#
 
 # Example:
-# using LinearAlgebra
+using LinearAlgebra
 
 #=
     If you're going to include files, please do so up here. Note that they
@@ -40,24 +40,35 @@ Arguments:
 Returns:
     - The location of the minimum
 """
+
 function optimize(f, g, x0, n, prob)
     if prob == "simple1"
-        x_history, f_history = optimizer(f, g, x0, n)
+        x_history, f_history = optimizer_simple(f, g, x0, n, 0.24)
+        #x_history, f_history = optimizer_momentum(f, g, x0, n, 1, 0.2)
     elseif prob == "simple2"
-        x_history, f_history = optimizer(f, g, x0, n)
+        x_history, f_history = optimizer_simple(f, g, x0, n, 0.3)
     else
-        x_history, f_history = optimizer(f, g, x0, n)
+        x_history, f_history = optimizer_simple(f, g, x0, n, 0.1)
     end
     x_best = x_history[argmin(f_history)]
     return x_best
 end
 
-function optimizer(f, g, x0, n, step = 0.1)
+function optimizer_simple(f, g, x0, n, step = 0.01)
     x_history = [x0]
     f_history = [f(x0)]
 
-    for i = 1:n-1
-        x_next = x_history[end] + step * ones(length(x0))
+    while count(f, g) < n - 1
+        # Calculate local descent
+        g_x = g(x_history[end])
+        d = -g_x / norm(g_x) 
+        # step = argmin(f(x_history[end] + step * d))
+
+        # Calculate next design point
+        x_next = x_history[end] + step * d
+        # x_next = x_history[end] - step * g_x
+
+        # Add design point to history of design points
         push!(x_history, x_next)
         push!(f_history, f(x_next))
     end
@@ -65,3 +76,24 @@ function optimizer(f, g, x0, n, step = 0.1)
     return x_history, f_history
 end
 
+function optimizer_momentum(f, g, x0, n, step = 1, Beta = 0)
+    x_history = [x0]
+    f_history = [f(x0)]
+    v = zeros(length(x0))
+
+    for i = 1:3:n-3
+        # Calculate local descent
+        g_x = g(x_history[end])
+        d = -g_x / norm(g_x)
+        v[:] = Beta*v + step * d
+
+        # Calculate next design point
+        x_next = x_history[end] + v
+
+        # Add design point to history of design points
+        push!(x_history, x_next)
+        push!(f_history, f(x_next))
+    end
+
+    return x_history, f_history
+end
