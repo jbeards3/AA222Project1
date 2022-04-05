@@ -41,6 +41,27 @@ Returns:
     - The location of the minimum
 """
 function optimize(f, g, x0, n, prob)
-    x_best = x0
+    if prob == "simple1"
+        x_history, f_history = optimizer(f, g, x0, n)
+    elseif prob == "simple2"
+        x_history, f_history = optimizer(f, g, x0, n)
+    else
+        x_history, f_history = optimizer(f, g, x0, n)
+    end
+    x_best = x_history[argmin(f_history)]
     return x_best
 end
+
+function optimizer(f, g, x0, n, step = 0.1)
+    x_history = [x0]
+    f_history = [f(x0)]
+
+    for i = 1:n-1
+        x_next = x_history[end] + step * ones(length(x0))
+        push!(x_history, x_next)
+        push!(f_history, f(x_next))
+    end
+
+    return x_history, f_history
+end
+
