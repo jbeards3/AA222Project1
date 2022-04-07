@@ -1,5 +1,6 @@
 using LaTeXStrings
 using Plots
+using LinearAlgebra
 
 ## Functions
 function rosenbrock_plot(x, y)
@@ -44,61 +45,24 @@ function powell_gradient(x::Vector)
     return storage
 end
 
-## Optimizer Functions
-function optimizer_grad_descent(f, g, x0, n, alpha = 0.01)
-    x_history = [x0]
-    f_history = [f(x0)]
-
-    for i = 1:2:n
-        x = x_history[end]
-        g_x = g(x)
-        # Calculate local descent
-        d = -g_x / norm(g_x) 
-
-        # Calculate next design point
-        x_next = x_history[end] + alpha * d
-
-        # Add design point to history of design points
-        push!(x_history, x_next)
-        push!(f_history, f(x_next))
-    end
-
-    return x_history, f_history
-end
-
-function optimizer_momentum(f, g, x0, n, alpha = 0.01, beta = 0)
+## Optimizer Function
+function optimizer_momentum_decay(f, g, x0, n; alpha = 0.01, beta = 0, gamma = 1)
     x_history = [x0]
     f_history = [f(x0)]
     v = zeros(length(x0))
 
     for i = 1:2:n
-        # Calculate local descent
-        g_x = g(x_history[end])
-        d = -g_x / norm(g_x)
-        v[:] = beta*v + alpha * d
-
-        # Calculate next design point
-        x_next = x_history[end] + v
-
-        # Add design point to history of design points
-        push!(x_history, x_next)
-        push!(f_history, f(x_next))
-    end
-
-    return x_history, f_history
-end
-
-function optimizer_momentum_decay(f, g, x0, n; alpha = 0.01, beta = 0, gamma = 1, p = 0.9)
-    x_history = [x0]
-    f_history = [f(x0)]
-    v = zeros(length(x0))
-
-    for i = 1:2:n
-        # Calculate local descent
+        # Calculate gradient
         g_x = g(x_history[end] + beta * v)
+
+        # Calculate local descent
         d = -g_x / norm(g_x)
-        v[:] = beta*v + alpha * gamma * d
-        gamma *= p
+
+        # Calculate momentumS
+        v = beta*v + alpha * gamma * d
+
+        # Decay learning rate
+        alpha *= gamma
 
         # Calculate next design point
         x_next = x_history[end] + v
@@ -113,19 +77,19 @@ end
 
 ## Function Minimization
 # Rosenbrock function
-x_history_r1, f_history_r1 = optimizer_momentum_decay(rosenbrock, rosenbrock_gradient, [-1.0, -1.0], 100; alpha = 0.2, beta = 0.8, gamma = 1, p = 0.85)
-x_history_r2, f_history_r2 = optimizer_momentum_decay(rosenbrock, rosenbrock_gradient, [0, -1.0], 100; alpha = 0.2, beta = 0.8, gamma = 1, p = 0.85)
-x_history_r3, f_history_r3 = optimizer_momentum_decay(rosenbrock, rosenbrock_gradient, [-1.0, 0], 100; alpha = 0.2, beta = 0.8, gamma = 1, p = 0.85)
+x_history_r1, f_history_r1 = optimizer_momentum_decay(rosenbrock, rosenbrock_gradient, [-1.0, -1.0], 100; alpha = 0.2, beta = 0.8, gamma = 0.85)
+x_history_r2, f_history_r2 = optimizer_momentum_decay(rosenbrock, rosenbrock_gradient, [0, -1.0], 100; alpha = 0.2, beta = 0.8, gamma = 0.85)
+x_history_r3, f_history_r3 = optimizer_momentum_decay(rosenbrock, rosenbrock_gradient, [-1.0, 0], 100; alpha = 0.2, beta = 0.8, gamma = 0.85)
 
 # Himmelblau function
-x_history_h1, f_history_h1 = optimizer_simple(himmelblau, himmelblau_gradient, [-1.0, -1.0], 100, 0.3)
-x_history_h2, f_history_h2 = optimizer_simple(himmelblau, himmelblau_gradient, [0, -1.0], 100, 0.3)
-x_history_h3, f_history_h3 = optimizer_simple(himmelblau, himmelblau_gradient, [-1.0, 0], 100, 0.3)
+x_history_h1, f_history_h1 = optimizer_momentum_decay(himmelblau, himmelblau_gradient, [-1.0, -1.0], 100; alpha = 1, beta = 0.9, gamma = 0.85)
+x_history_h2, f_history_h2 = optimizer_momentum_decay(himmelblau, himmelblau_gradient, [0, -1.0], 100; alpha = 1, beta = 0.9, gamma = 0.85)
+x_history_h3, f_history_h3 = optimizer_momentum_decay(himmelblau, himmelblau_gradient, [-1.0, 0], 100; alpha = 1, beta = 0.9, gamma = 0.85)
 
 # Powell function
-x_history_p1, f_history_p1 = optimizer_simple(powell, powell_gradient, [-1.0, -1.0, -1.0, -1.0], 100, 0.1)
-x_history_p2, f_history_p2 = optimizer_simple(powell, powell_gradient, [0, 0, -1.0, -1.0], 100, 0.1)
-x_history_p3, f_history_p3 = optimizer_simple(powell, powell_gradient, [-1.0, -1.0, 0, 0], 100, 0.1)
+x_history_p1, f_history_p1 = optimizer_momentum_decay(powell, powell_gradient, [-1.0, -1.0, -1.0, -1.0],100; alpha = 1, beta = 0.9, gamma = 0.85)
+x_history_p2, f_history_p2 = optimizer_momentum_decay(powell, powell_gradient, [0, 0, -1.0, -1.0], 100; alpha = 1, beta = 0.9, gamma = 0.85)
+x_history_p3, f_history_p3 = optimizer_momentum_decay(powell, powell_gradient, [-1.0, -1.0, 0, 0], 100; alpha = 1, beta = 0.9, gamma = 0.85)
 
 ## Plotting
 # Contour of Rosenbrock

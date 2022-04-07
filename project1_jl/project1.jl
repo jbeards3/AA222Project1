@@ -43,7 +43,7 @@ Returns:
 
 # Will only be logging history of x throughout each iteration since gradient descent method doesn't need f(x),
 # plus keeping history of f(x) at each iteration wastes an evaluation, thus reducing the number of iterations
-# I can run. Since the number of evaluation doesn't matter for plotting, I will be logging f(x) history there
+# I can run. Since the number of evaluations doesn't matter for plotting, I will be logging f(x) history there
 function optimize(f, g, x0, n, prob)
     if prob == "simple1"
         x_history = optimizer_momentum_decay(f, g, x0, n; alpha = 0.2, beta = 0.8, gamma = 0.85)
@@ -60,13 +60,14 @@ function optimize(f, g, x0, n, prob)
     return x_best
 end
 
-function optimizer_grad_descent(f, g, x0, n, alpha = 0.01, beta = 0.0001)
+function optimizer_grad_descent(f, g, x0, n, alpha = 0.01)
     x_history = [x0]
 
     while count(f, g) < n
 
         x = x_history[end]
-        # f_x = f(x)
+
+        # Calculate gradient
         g_x = g(x)
 
         # Calculate local descent
@@ -79,7 +80,6 @@ function optimizer_grad_descent(f, g, x0, n, alpha = 0.01, beta = 0.0001)
 
         # Calculate next design point
         x_next = x_history[end] + alpha * d
-        # x_next = x_history[end] - step * g_x
 
         # Add design point to history of design points
         push!(x_history, x_next)
@@ -93,10 +93,15 @@ function optimizer_momentum(f, g, x0, n, alpha = 0.01, beta = 0)
     v = zeros(length(x0))
 
     while count(f, g) < n
-        # Calculate local descent
+
+        # Calculate gradient
         g_x = g(x_history[end])
+
+        # Calculate local descent
         d = -g_x / norm(g_x)
-        v[:] = beta*v + alpha * d
+
+        # Calculate momentum
+        v = beta*v + alpha * d
 
         # Calculate next design point
         x_next = x_history[end] + v
@@ -113,14 +118,15 @@ function optimizer_momentum_decay(f, g, x0, n; alpha = 0.1, beta = 0.9, gamma = 
     v = zeros(length(x0))
 
     while count(f, g) < n
-        # Calculate gradient
+
+        # Calculate gradient at next predicted design point based on current location/momentum
         g_x = g(x_history[end] + beta * v)
 
         # Calculate local descent
         d = -g_x / norm(g_x)
 
         # Calculate momentum
-        v[:] = beta * v + alpha * d
+        v = beta * v + alpha * d
 
         # Calculate next design point
         x_next = x_history[end] + v
@@ -145,10 +151,10 @@ function optimizer_ADAM(f, g, x0, n; alpha = .001, gamma_v = 0.9, gamma_s = 0.99
         g_x = g(x_history[end])
 
         # Update biased decaying momentum
-        v[:] = gamma_v * v + (1 - gamma_v) * g_x
+        v = gamma_v * v + (1 - gamma_v) * g_x
 
         # Update biased decaying square gradient
-        s[:] = gamma_s * s + (1 - gamma_s) * (g_x .* g_x)
+        s = gamma_s * s + (1 - gamma_s) * (g_x .* g_x)
 
         # Calculate corrected decaying momentum
         v_c = v ./ (1 - gamma_v)
